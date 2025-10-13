@@ -1,1 +1,45 @@
 @import "tailwindcss";
+@import 'leaflet/dist/leaflet.css';
+
+
+/*Map containers follow this*/
+.leaflet-container{
+    width: 100%;
+    height: 100%;
+}
+
+/*Creates multiply layer for the map render*/
+.leaflet-tile-pane .blend-multiply {
+  mix-blend-mode: multiply;
+}
+
+/*Al rato creo modificación de los componentes de polygon drawer*/
+
+
+.leaflet-control-zoom {
+  border: none !important;
+  box-shadow: none !important;
+  display: flex !important;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.leaflet-control-zoom a {
+  background-color: white !important;
+  color: #16a34a !important; /* verde Tailwind: green-600 */
+  border-radius: 8px !important;
+  border: 1px solid #d1d5db !important; /* gray-300 */
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15);
+  width: 32px;
+  height: 32px;
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  transition: all 0.2s ease;
+}
+
+.leaflet-control-zoom a:hover {
+  background-color: #16a34a !important;
+  color: white !important;
+}

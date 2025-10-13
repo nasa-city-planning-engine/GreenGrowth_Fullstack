@@ -1,16 +1,26 @@
-import { getAllCountryNames, getCountryUbi } from "../apiCountry";
+import { getAllCountryNames, getCountryUbi } from "../others/apiCountry";
 import { useState, useEffect } from "react";
-import { useCoordinates } from "../coordinateProvider"; // Cambio aquí
+import { useCoordinates } from "../others/coordinateProvider";
+import { Link } from "react-router-dom";
 
 export default function SelectCoordinates() {
-  // Obtener la función del contexto
-  const { setCoordinates: setGlobalCoordinates } = useCoordinates();
+  const { coordinates, setCoordinates: setGlobalCoordinates } =
+    useCoordinates();
 
   const [countries, setCountries] = useState<string[]>([]);
   const [options, setOptions] = useState("");
-  const [coordinates, setLocalCoordinates] = useState({ lat: 0, lng: 0 }); // Renombrado
   const [manualEdit, setManualEdit] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
+
+  // inputs controlados como texto
+  const [latInput, setLatInput] = useState(coordinates.lat.toString());
+  const [lngInput, setLngInput] = useState(coordinates.lng.toString());
+
+  // cuando cambian las coordenadas globales (por mover el marcador, por ejemplo)
+  useEffect(() => {
+    setLatInput(coordinates.lat.toString());
+    setLngInput(coordinates.lng.toString());
+  }, [coordinates]);
 
   useEffect(() => {
     getAllCountryNames().then((data) => setCountries(data));
@@ -20,29 +30,34 @@ export default function SelectCoordinates() {
     if (options && !manualEdit) {
       getCountryUbi(options).then((coords) => {
         if (coords) {
-          setLocalCoordinates(coords);
-          setGlobalCoordinates(coords); // Actualizar contexto global
+          setGlobalCoordinates(coords);
         } else {
           console.error("No se encontraron coordenadas");
         }
       });
     }
-  }, [options, manualEdit]);
+  }, [options, manualEdit, setGlobalCoordinates]);
 
   const handleLatChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newLat = parseFloat(e.target.value) || 0;
-    const newCoords = { ...coordinates, lat: newLat };
-    setLocalCoordinates(newCoords);
-    setGlobalCoordinates(newCoords); // Actualizar contexto global
-    setManualEdit(true);
+    const value = e.target.value;
+    setLatInput(value);
+
+    const parsed = parseFloat(value);
+    if (!isNaN(parsed)) {
+      setGlobalCoordinates({ ...coordinates, lat: parsed });
+      setManualEdit(true);
+    }
   };
 
   const handleLngChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newLng = parseFloat(e.target.value) || 0;
-    const newCoords = { ...coordinates, lng: newLng };
-    setLocalCoordinates(newCoords);
-    setGlobalCoordinates(newCoords); // Actualizar contexto global
-    setManualEdit(true);
+    const value = e.target.value;
+    setLngInput(value);
+
+    const parsed = parseFloat(value);
+    if (!isNaN(parsed)) {
+      setGlobalCoordinates({ ...coordinates, lng: parsed });
+      setManualEdit(true);
+    }
   };
 
   const handleCountryChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -50,110 +65,102 @@ export default function SelectCoordinates() {
     setManualEdit(false);
   };
 
-  const filteredCountries = countries.filter((country) => {
-    return country && country.toLowerCase().includes(searchTerm.toLowerCase());
-  });
+  const filteredCountries = countries.filter((country) =>
+    country?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   return (
-    <>
-      <div className="bg-gradient-to-br from-green-50 to-blue-50 p-4 md:p-8">
-        <div className="max-w-4xl mx-auto">
-          <div className="bg-white rounded-2xl shadow-xl p-6 md:p-8 space-y-6">
-            {/* Búsqueda y selección de país en la misma fila */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Search Country
-                </label>
-                <input
-                  type="text"
-                  placeholder="Type to search..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full px-4 py-3 text-gray-900 bg-white rounded-lg border-2 border-gray-300 focus:border-green-500 focus:outline-none transition-colors"
-                />
-              </div>
+    <div className="absolute top-4 right-10 z-[1000] bg-white bg-opacity-95 p-3 rounded-lg shadow-lg border border-green-200 w-72 space-y-3">
+      {/* Búsqueda y selección */}
+      <div>
+        <label className="block text-xs font-semibold text-gray-700 mb-1">
+          Search Country
+        </label>
+        <input
+          type="text"
+          placeholder="Type to search..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="w-full px-3 py-2 text-gray-900 bg-white rounded-md border border-gray-300 focus:border-green-500 focus:outline-none text-sm"
+        />
+      </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Country
-                </label>
-                <select
-                  onChange={handleCountryChange}
-                  value={options}
-                  className="w-full px-4 py-3 text-gray-900 bg-white rounded-lg border-2 border-gray-300 focus:border-green-500 focus:outline-none transition-colors"
-                >
-                  <option value="">Choose Country</option>
-                  {filteredCountries.map((opts, index) => (
-                    <option key={index}>{opts}</option>
-                  ))}
-                </select>
-                <p className="text-xs text-gray-500 mt-2">
-                  Showing {filteredCountries.length} of {countries.length}{" "}
-                  countries
-                </p>
-              </div>
-            </div>
+      <div>
+        <label className="block text-xs font-semibold text-gray-700 mb-1">
+          Country
+        </label>
+        <select
+          onChange={handleCountryChange}
+          value={options}
+          className="w-full px-3 py-2 text-gray-900 bg-white rounded-md border border-gray-300 focus:border-green-500 focus:outline-none text-sm"
+        >
+          <option value="">Choose Country</option>
+          {filteredCountries.map((country, index) => (
+            <option key={index}>{country}</option>
+          ))}
+        </select>
+        <p className="text-[10px] text-gray-500 mt-1">
+          Showing {filteredCountries.length} of {countries.length}
+        </p>
+      </div>
 
-            {/* Coordenadas del país */}
-            {options && (
-              <div className="bg-green-50 border-2 border-green-200 rounded-lg p-4">
-                <p className="text-sm font-semibold text-green-900">
-                  Selected Country Coordinates:
-                </p>
-                <p className="text-sm text-green-800 mt-1">
-                  Latitude: {coordinates.lat} | Longitude: {coordinates.lng}
-                </p>
-              </div>
-            )}
-
-            {/* Modificar coordenadas manualmente */}
-            <div>
-              <h3 className="text-lg md:text-xl font-semibold text-gray-800 mb-4">
-                Modify Coordinates Manually
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Latitude
-                  </label>
-                  <input
-                    type="number"
-                    step="0.1"
-                    value={coordinates.lat}
-                    onChange={handleLatChange}
-                    className="w-full px-4 py-3 text-gray-900 bg-white rounded-lg border-2 border-gray-300 focus:border-blue-500 focus:outline-none transition-colors"
-                    placeholder="e.g. 19.4326"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Longitude
-                  </label>
-                  <input
-                    type="number"
-                    step="0.1"
-                    value={coordinates.lng}
-                    onChange={handleLngChange}
-                    className="w-full px-4 py-3 text-gray-900 bg-white rounded-lg border-2 border-gray-300 focus:border-blue-500 focus:outline-none transition-colors"
-                    placeholder="e.g. -99.1332"
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Coordenadas actuales */}
-            <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-4">
-              <p className="text-sm font-semibold text-blue-900">
-                📍 Current Coordinates
+      {/* Coordenadas */}
+      <div>
+        <h3 className="text-sm font-semibold text-gray-800 mb-2">
+          Modify Coordinates
+        </h3>
+        <div className="grid grid-cols-2 gap-2">
+          <div>
+            <label className="block text-xs font-medium text-gray-700 mb-1">
+              Lat
+            </label>
+            <input
+              type="number"
+              step="0.0001"
+              min={-90}
+              max={90}
+              value={latInput}
+              onChange={handleLatChange}
+              className="w-full px-2 py-1 text-gray-900 bg-white rounded-md border border-gray-300 focus:border-blue-500 focus:outline-none text-sm"
+            />
+            {parseFloat(latInput) > 90 || parseFloat(latInput) < -90 ? (
+              <p className="text-[10px] text-red-600 mt-0.5">
+                Between -90 and 90
               </p>
-              <p className="text-lg font-bold text-blue-800 mt-2">
-                Latitude: {coordinates.lat}, Longitude: {coordinates.lng}
-              </p>
-            </div>
+            ) : null}
+          </div>
+
+          <div>
+            <label className="block text-xs font-medium text-gray-700 mb-1">
+              Lng
+            </label>
+            <input
+              type="number"
+              step="0.0001"
+              min={-180}
+              max={180}
+              value={lngInput}
+              onChange={handleLngChange}
+              className="w-full px-2 py-1 text-gray-900 bg-white rounded-md border border-gray-300 focus:border-blue-500 focus:outline-none text-sm"
+            />
           </div>
         </div>
       </div>
-    </>
+
+      <div className="grid grid-cols-2 gap-2 py-2 content-end">
+        <Link
+          to="/edit"
+          className="inline-block bg-green-600 hover:bg-green-700 text-white text-sm font-medium px-3 py-1.5 rounded-md transition-colors text-center"
+        >
+          Make Simulation
+        </Link>
+        <Link
+          to="/reportList"
+          className="inline-block bg-green-600 hover:bg-green-700 text-white text-sm font-medium px-3 py-1.5 rounded-md transition-colors text-center"
+        >
+          Check Report List
+        </Link>
+      </div>
+    </div>
   );
 }

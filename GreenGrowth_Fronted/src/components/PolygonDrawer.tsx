@@ -1,77 +1,26 @@
 import { useEffect, useRef, useState } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
-import { useCoordinates } from "../coordinateProvider";
+import { useCoordinates } from "../others/coordinateProvider";
+import type {
+  Zone,
+  ZoneType,
+  LayerData,
+  PolygonDrawerProps,
+} from "../types/types";
+import Instruction from "./instructions";
+import Legend from "./legend";
+import { legendData, zoneConfig } from "../types/consts";
+import Parameters from "./FormParameters";
+import FormParameters from "./FormParameters";
+import PolygonCoordinateExporter from "../components/PolygonCoordinateExporter";
 
-interface Zone {
-  id: number;
-  type: ZoneType;
-  polygon: L.Polygon;
-  area: number;
-  points: L.LatLng[];
-  backendId?: string;
-}
-
-type ZoneType = "verde" | "residencial" | "industrial";
-
-const zoneConfig = {
-  verde: { color: "#10b981", name: "Green Zone", icon: "🌳" },
-  residencial: { color: "#f59e0b", name: "Residential Zone", icon: "🏘️" },
-  industrial: { color: "#6366f1", name: "Industrial Zone", icon: "🏭" },
-};
-
-interface LegendItem {
-  color: string;
-  label: string;
-}
-
-interface LayerData {
-  url: string;
-  legend: {
-    title: string;
-    items: LegendItem[];
-  };
-}
-
-const legendData = {
-  temp: {
-    title: "Temperature (°C)",
-    items: [
-      { color: "#8B0000", label: "> 40" },
-      { color: "#FF4500", label: "30 - 40" },
-      { color: "#FFD700", label: "20 - 30" },
-      { color: "#00BFFF", label: "10 - 20" },
-      { color: "#00008B", label: "< 10" },
-    ],
-  },
-  aq: {
-    title: "Air Quality (AQI)",
-    items: [
-      { color: "#009966", label: "Good (0-50)" },
-      { color: "#FFDE33", label: "Moderate (51-100)" },
-      { color: "#FF9933", label: "Unhealthy for Sensitive Groups (101-150)" },
-      { color: "#CC0033", label: "Very Unhealthy (151-200)" },
-      { color: "#660099", label: "Hazardous (201+)" },
-    ],
-  },
-  ndvi: {
-    title: "Vegetation Index (NDVI)",
-    items: [
-      { color: "#2d9c43", label: "High Vegetation" },
-      { color: "#9cdb5f", label: "Moderate Vegetation" },
-      { color: "#f9dd63", label: "Low Vegetation" },
-      { color: "#d1a065", label: "Bare Soil" },
-      { color: "#f2f2f2", label: "No Data / Clouds" },
-    ],
-  },
-};
+const BACKEND_API = import.meta.env.VITE_BACKEND_API;
 
 const PolygonDrawer: React.FC<PolygonDrawerProps> = ({
   onEnvironmentUpdate,
-  latitude = 29.0729,
-  longitude = -110.9559,
   buffer = 50000,
-  useMockData = false,
+  //useMockData = false,
 }) => {
   const mapRef = useRef<L.Map | null>(null);
   const mapContainerRef = useRef<HTMLDivElement>(null);
@@ -108,7 +57,7 @@ const PolygonDrawer: React.FC<PolygonDrawerProps> = ({
       map.remove();
       mapRef.current = null;
     };
-  }, [latitude, longitude]);
+  }, [coordinates.lat, coordinates.lng]);
 
   // Load environmental layers
   useEffect(() => {
@@ -116,8 +65,8 @@ const PolygonDrawer: React.FC<PolygonDrawerProps> = ({
       console.log("🔄 Starting environmental layers load...");
       try {
         const params = new URLSearchParams({
-          latitude: latitude.toString(),
-          longitude: longitude.toString(),
+          latitude: coordinates.lat.toString(),
+          longitude: coordinates.lng.toString(),
           buffer: buffer.toString(),
         });
 
@@ -126,7 +75,7 @@ const PolygonDrawer: React.FC<PolygonDrawerProps> = ({
         const results = await Promise.allSettled(
           layerKeys.map(async (key) => {
             console.log(`📡 Requesting layer: ${key}`);
-            const url = `http://127.0.0.1:5001/geo/get-initial-data/${key}?${params.toString()}`;
+            const url = `${BACKEND_API}/geo/get-initial-data/${key}?${params.toString()}`;
             console.log(`   URL: ${url}`);
 
             const res = await fetch(url);
@@ -190,7 +139,7 @@ const PolygonDrawer: React.FC<PolygonDrawerProps> = ({
     if (mapRef.current) {
       fetchAllLayers();
     }
-  }, [latitude, longitude, buffer]);
+  }, [coordinates.lat, coordinates.lng, buffer]);
 
   // Handle active layer change
   useEffect(() => {
@@ -395,46 +344,6 @@ const PolygonDrawer: React.FC<PolygonDrawerProps> = ({
       industrial: "industrial",
     };
 
-    if (useMockData) {
-      console.log("📤 MOCK mode enabled");
-      await new Promise((resolve) => setTimeout(resolve, 500));
-
-      let aqDelta, ndviDelta, tempDelta;
-
-      if (zone.type === "verde") {
-        aqDelta = -9.82;
-        ndviDelta = 0.546;
-        tempDelta = -4.91;
-      } else if (zone.type === "industrial") {
-        aqDelta = 15.0;
-        ndviDelta = -0.2;
-        tempDelta = 3.5;
-      } else {
-        aqDelta = 5.0;
-        ndviDelta = -0.05;
-        tempDelta = 1.2;
-      }
-
-      return {
-        baseline: {
-          aq_mean_0_100: 73.35,
-          ndvi_mean: 0.151,
-          temp_c_mean: 47.54,
-        },
-        delta: {
-          aq_mean_0_100: aqDelta,
-          ndvi_mean: ndviDelta,
-          temp_c_mean: tempDelta,
-        },
-        post_simulation: {
-          aq_mean_0_100: 73.35 + aqDelta,
-          ndvi_mean: 0.151 + ndviDelta,
-          temp_c_mean: 47.54 + tempDelta,
-        },
-        preset: presetMap[zone.type],
-      };
-    }
-
     const centroid = calculateCentroid(zone.points);
 
     const payload = {
@@ -448,7 +357,7 @@ const PolygonDrawer: React.FC<PolygonDrawerProps> = ({
       },
     };
 
-    const response = await fetch("http://localhost:5001/geo/simulate", {
+    const response = await fetch(`${BACKEND_API}/geo/simulate`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
@@ -527,7 +436,7 @@ const PolygonDrawer: React.FC<PolygonDrawerProps> = ({
                 </p>
               </div>
             </div>
-
+        
             {zones.length > 0 && (
               <button
                 onClick={clearAllZones}
@@ -568,7 +477,6 @@ const PolygonDrawer: React.FC<PolygonDrawerProps> = ({
                 <span>{zoneConfig[type].name}</span>
               </button>
             ))}
-
             {isDrawing && (
               <button
                 onClick={cancelDrawing}
@@ -592,6 +500,8 @@ const PolygonDrawer: React.FC<PolygonDrawerProps> = ({
               Available Layers: {Object.keys(layers).length}
             </p>
           </div>
+          {/*  type = industry, green zone or residential zone */}
+          <FormParameters type="green zone"/>
           {Object.keys(layers).map((key) => (
             <button
               key={key}
@@ -615,87 +525,54 @@ const PolygonDrawer: React.FC<PolygonDrawerProps> = ({
             </div>
           )}
         </div>
+    
+        
+        <Legend activeLayer={activeLayer} />
+        <Instruction />
 
-        {/* Leyenda */}
-        {activeLayer && (
-          <div className="absolute bottom-20 right-4 z-[1000] bg-white bg-opacity-95 p-4 rounded-xl shadow-2xl border-2 border-green-200">
-            <h3 className="font-bold text-sm mb-3 text-gray-800">
-              {activeLayer.legend.title}
-            </h3>
-            <ul className="space-y-1">
-              {activeLayer.legend.items.map((item, index) => (
-                <li
-                  key={index}
-                  className="flex items-center text-xs text-gray-700"
-                >
-                  <span
-                    className="w-5 h-5 inline-block mr-2 border border-gray-400 rounded"
-                    style={{ backgroundColor: item.color }}
-                  ></span>
-                  <span>{item.label}</span>
-                </li>
-              ))}
-            </ul>
+
+        {isDrawing && (
+          <div className="mt-4 p-3 bg-gradient-to-r from-amber-50 to-orange-50 rounded-xl border-2 border-amber-200">
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-semibold text-amber-800">
+                Drawing...
+              </span>
+              <span className="px-3 py-1 bg-amber-500 text-white rounded-full text-xs font-bold">
+                {currentPoints.length} points
+              </span>
+            </div>
+            {currentZoneType && (
+              <div className="mt-2 text-xs text-amber-700 flex items-center gap-1">
+                <span>{zoneConfig[currentZoneType].icon}</span>
+                <span>{zoneConfig[currentZoneType].name}</span>
+              </div>
+            )}
           </div>
         )}
-
-        {/* Instrucciones */}
-        <div className="absolute bottom-4 left-4 bg-white rounded-2xl shadow-2xl p-5 max-w-xs backdrop-blur-sm bg-opacity-95 z-[1000]">
-          <div className="flex items-center gap-2 mb-3">
-            <span className="text-2xl">📍</span>
-            <h4 className="text-lg font-bold text-gray-800">Instructions</h4>
-          </div>
-          <div className="space-y-2 text-sm text-gray-600">
-            <div className="flex gap-2">
-              <span className="font-bold text-indigo-600">1.</span>
-              <span>Select a zone type above</span>
-            </div>
-            <div className="flex gap-2">
-              <span className="font-bold text-indigo-600">2.</span>
-              <span>Click on the map to add points</span>
-            </div>
-            <div className="flex gap-2">
-              <span className="font-bold text-indigo-600">3.</span>
-              <span>
-                Press{" "}
-                <kbd className="px-2 py-1 bg-gray-200 rounded text-xs font-mono">
-                  Enter
-                </kbd>{" "}
-                to finish
-              </span>
-            </div>
-            <div className="flex gap-2">
-              <span className="font-bold text-indigo-600">4.</span>
-              <span>
-                Press{" "}
-                <kbd className="px-2 py-1 bg-gray-200 rounded text-xs font-mono">
-                  Esc
-                </kbd>{" "}
-                to cancel
-              </span>
-            </div>
-          </div>
-
-          {isDrawing && (
-            <div className="mt-4 p-3 bg-gradient-to-r from-amber-50 to-orange-50 rounded-xl border-2 border-amber-200">
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-semibold text-amber-800">
-                  Drawing...
-                </span>
-                <span className="px-3 py-1 bg-amber-500 text-white rounded-full text-xs font-bold">
-                  {currentPoints.length} points
-                </span>
-              </div>
-              {currentZoneType && (
-                <div className="mt-2 text-xs text-amber-700 flex items-center gap-1">
-                  <span>{zoneConfig[currentZoneType].icon}</span>
-                  <span>{zoneConfig[currentZoneType].name}</span>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
       </div>
+
+      <PolygonCoordinateExporter
+        zones={zones}
+        buffer={buffer}
+        onBatchSendComplete={(results: { success: boolean; data?: any }[]) => {
+          console.log("Batch results:", results);
+
+          results.forEach((result) => {
+            if (result.success) {
+              const updatedData = result.data;
+              if (onEnvironmentUpdate && updatedData) {
+                onEnvironmentUpdate({
+                  baseline: updatedData.baseline,
+                  delta: updatedData.delta,
+                  post_simulation: updatedData.post_simulation,
+                  preset: updatedData.preset,
+                  zoneCount: zones.length,
+                });
+              }
+            }
+          });
+        }}
+    />
     </div>
   );
 };
