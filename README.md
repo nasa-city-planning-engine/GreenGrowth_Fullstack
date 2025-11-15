@@ -3,6 +3,8 @@
 ![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 ![NASA Space Apps](https://img.shields.io/badge/NASA%20Space%20Apps-2025-orange.svg)
+![DEMO](https://greengrowth-front.onrender.com/)
+
 
 A fullstack application for sustainable urban planning developed for the NASA Space Apps Challenge 2025. This application allows you to visualize and plan green growth in cities using geospatial data and interactive maps.
 
