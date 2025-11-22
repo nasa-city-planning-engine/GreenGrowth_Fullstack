@@ -20,7 +20,6 @@ export async function fetchLayerData(
 
   const url = `${BACKEND_API}/geo/get-initial-data/${key}?${params.toString()}`;
   console.log(`📡 Requesting layer: ${key}`);
-  console.log(`   URL: ${url}`);
 
   const res = await fetch(url);
   if (!res.ok) {
@@ -59,4 +58,49 @@ export async function fetchAllEnvironmentalLayers(
   });
 
   return validLayers;
+}
+
+export async function fetchInitialKPIs(
+  name: string,
+  lat: number,
+  lng: number,
+  buffer: number
+) {
+  const url = `${BACKEND_API}/geo/get-kpis/${name}?latitude=${lat}&longitude=${lng}&buffer=${buffer}`;
+  console.log(`Requesting KPI for ${name}`);
+
+  const res = await fetch(url);
+  if (!res.ok) {
+    throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+  }
+
+  const data = await res.json();
+  return data.payload;
+}
+
+// To be configured
+export async function sendPolygonSim(body: Object) {
+  const url = `${BACKEND_API}/geo/simulate-polygons`;
+
+  try {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(body),
+    });
+
+    if (!res.ok) {
+      const err = await res.text();
+      throw new Error(`HTTP ${res.status}: ${err}`);
+    }
+
+    const data = await res.json();
+    return data.payload;
+    
+  } catch (error) {
+    console.error("Error sending polygon simulation:", error);
+    throw error;
+  }
 }

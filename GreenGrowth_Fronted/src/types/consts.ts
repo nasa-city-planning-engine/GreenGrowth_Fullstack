@@ -2,8 +2,8 @@
 export const zoneConfig = {
   verde: { key:"green zone", color: "#10b981", name: "Green Zone", icon: "🌳" },
   residencial: { key:"residential zone",color: "#f59e0b", name: "Residential Zone", icon: "🏘️" },
-  industrial: { key:"industry",color: "#6366f1", name: "Industrial Zone", icon: "🏭" },
-};
+  industrial: { key:"industrial zone",color: "#6366f1", name: "Industrial Zone", icon: "🏭" },
+} as const;
 
 export const legendData = {
   temp: {
@@ -39,33 +39,48 @@ export const legendData = {
 };
 
 
+
 export const parameterForm = {
   "residential zone": {
     color: "#F59E0B",
     parameters: [
-      { name: "Building Density (buildings/km^2)", type: "slider", range: [0, 100] },
-      { name: "Estimated traffic, vehicler per day", type: "slider", range: [0, 1000] },
-      { name: "“How reflective are the surfaces in the area? (Albedo from 0 to 1)", type: "slider", range: [0, 1], useDecimal: true}
+      { key:"densidad",
+         name: "Building Density (buildings/km^2)", type: "slider", range: [0, 100] },
+      { key:"trafico", 
+        name: "Estimated traffic, vehicler per day", type: "slider", range: [0, 1000] },
+      { key:"albedo",
+        name: "“How reflective are the surfaces in the area? (Albedo from 0 to 1)", type: "slider", range: [0, 1], useDecimal: true}
     ],
   },
-  "industry": {
+
+  "industrial zone": {
     color: "#6366F1",
     parameters: [
-      { name: "CH4 emissions (m^3)", type: "slider", range: [0, 25000] },
-      { name: "CO2 emissions (m^3)", type: "slider", range: [0, 25000] },
-      { name: "NO2 emissions (m^3)", type: "slider", range: [0, 25000] },
-      { name: "Type of industry", type: "dropdown-industry" },
+      { key:"ch4", 
+        name: "CH4 emissions (m^3)", type: "slider", range: [0, 25000] },
+      { key:"c02",
+        name: "CO2 emissions (m^3)", type: "slider", range: [0, 25000] },
+      { key:"n2o",
+        name: "NO2 emissions (m^3)", type: "slider", range: [0, 25000] },
+      { key:"industries_used",
+        name: "Type of industry", type: "dropdown-industry" },
     ],
   },
   "green zone": {
     color: "#10B981",
     parameters: [
-      { name: "Amount of trees (Trees/Hectare)", type: "slider", range: [0, 1000] },
-      { name: "Grass cover (Percentage)", type: "slider", range: [0, 100] },
-      { name: "Is there a water body in the zone?", type: "slider", range: [0, 1] },
-      { name: "Tree canopy cover (Percentage)", type: "slider", range: [0, 100] }, 
+      { key: "arboles",
+        name: "Amount of trees (Trees/Hectare)", type: "slider", range: [0, 1000] },
+      { key: "pasto",
+        name: "Grass cover (Percentage)", type: "slider", range: [0, 100] },
+      { key: "agua",
+        name: "Is there a water body in the zone?", type: "bool", range: [0, 1] },
+      { key: "copa",
+        name: "Tree canopy cover (Percentage)", type: "slider", range: [0, 100] }, 
 
     ],
     
   },
-};
+} as const;
+
+

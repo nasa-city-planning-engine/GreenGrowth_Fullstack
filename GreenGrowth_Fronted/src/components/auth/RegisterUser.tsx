@@ -1,0 +1,369 @@
+import React, { useState } from 'react';
+import axios from 'axios';
+import { useNavigate, Link } from 'react-router-dom';
+
+interface IFormData {
+  username: string;
+  email: string;
+  password: string;
+  confirmPassword: string;
+}
+
+interface ApiError {
+  message?: string;
+}
+
+const API_URL = `${import.meta.env.VITE_BACKEND_API}/users/register`;
+
+const UserIcon: React.FC = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+    <path d="M8 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6m2-3a2 2 0 1 1-4 0 2 2 0 0 1 4 0m4 8c0 1-1 1-1 1H3s-1 0-1-1 1-4 6-4 6 3 6 4m-1-.004c-.001-.246-.154-.986-.832-1.664C11.516 10.68 10.289 10 8 10s-3.516.68-4.168 1.332c-.678.678-.83 1.418-.832 1.664z"/>
+  </svg>
+);
+
+const EmailIcon: React.FC = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+    <path d="M.05 3.555A2 2 0 0 1 2 2h12a2 2 0 0 1 1.95 1.555L8 8.414zM0 4.697v7.104l5.803-3.558zM6.761 8.83l-6.57 4.027A2 2 0 0 0 2 14h12a2 2 0 0 0 1.808-1.144l-6.57-4.027L8 9.586z"/>
+  </svg>
+);
+
+const LockIcon: React.FC = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+    <path d="M8 1a2 2 0 0 1 2 2v4H6V3a2 2 0 0 1 2-2m3 6V3a3 3 0 0 0-6 0v4a2 2 0 0 0-2 2v5a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2"/>
+  </svg>
+);
+
+const ErrorIcon: React.FC = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 16 16">
+    <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14m0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16"/>
+    <path d="M7.002 11a1 1 0 1 1 2 0 1 1 0 0 1-2 0M7.1 4.995a.905.905 0 1 1 1.8 0l-.35 3.507a.552.552 0 0 1-1.1 0z"/>
+  </svg>
+);
+
+async function registerUser(data: { username: string; email: string; password: string }) {
+  const response = await axios.post(API_URL, data);
+  return response.data;
+}
+
+const RegisterUser: React.FC = () => {
+  const [formData, setFormData] = useState<IFormData>({
+    username: '',
+    email: '',
+    password: '',
+    confirmPassword: '',
+  });
+  const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+
+  const navigate = useNavigate();
+  const { username, email, password, confirmPassword } = formData;
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormData(prev => ({
+      ...prev,
+      [e.target.name]: e.target.value,
+    }));
+  };
+
+  const validateForm = (): string | null => {
+    if (!username.trim() || !email.trim() || !password.trim() || !confirmPassword.trim()) {
+      return 'Please complete all fields.';
+    }
+
+    const emailRegex = /\S+@\S+\.\S+/;
+    if (!emailRegex.test(email.trim())) {
+      return 'Please enter a valid email.';
+    }
+
+    if (password.length < 6) {
+      return 'Password must be at least 6 characters long.';
+    }
+
+    if (password !== confirmPassword) {
+      return 'Passwords do not match.';
+    }
+
+    return null;
+  };
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setError(null);
+
+    const validationError = validateForm();
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      await registerUser({ username, email, password });
+
+      setFormData({
+        username: '',
+        email: '',
+        password: '',
+        confirmPassword: '',
+      });
+
+      navigate('/login');
+    } catch (err) {
+      let errorMessage = 'An unexpected error occurred. Please try again.';
+
+      if (axios.isAxiosError(err)) {
+        const serverError = err.response?.data as ApiError | undefined;
+
+        if (err.response?.status === 409) {
+          errorMessage = 'This user or email already exists.';
+        } else if (serverError?.message) {
+          errorMessage = serverError.message;
+        } else if (!err.response) {
+          errorMessage = "Couldn't connect to the server. Please check your connection.";
+        } else {
+          errorMessage = 'Server error. Please try again later.';
+        }
+      }
+
+      setError(errorMessage);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <div style={styles.pageContainer}>
+      <button
+        onClick={() => navigate('/reportList')}
+        style={styles.backButton}
+        type="button"
+      >
+        ← Back to Report List
+      </button>
+
+      <div style={styles.formWrapper}>
+        <h1 style={styles.header}>Create New User</h1>
+        <form onSubmit={handleSubmit} style={styles.form}>
+          <div style={styles.card}>
+
+            <div style={styles.inputGroup}>
+              <label htmlFor="username" style={styles.label}>Username</label>
+              <div style={styles.inputContainer}>
+                <span style={styles.icon}><UserIcon /></span>
+                <input
+                  type="text"
+                  id="username"
+                  name="username"
+                  value={username}
+                  onChange={handleChange}
+                  placeholder="Enter your username"
+                  style={styles.input}
+                  required
+                  disabled={isLoading}
+                />
+              </div>
+            </div>
+
+            <div style={styles.inputGroup}>
+              <label htmlFor="email" style={styles.label}>Email</label>
+              <div style={styles.inputContainer}>
+                <span style={styles.icon}><EmailIcon /></span>
+                <input
+                  type="email"
+                  id="email"
+                  name="email"
+                  value={email}
+                  onChange={handleChange}
+                  placeholder="Enter your email"
+                  style={styles.input}
+                  required
+                  disabled={isLoading}
+                />
+              </div>
+            </div>
+
+            <div style={styles.inputGroup}>
+              <label htmlFor="password" style={styles.label}>Password</label>
+              <div style={styles.inputContainer}>
+                <span style={styles.icon}><LockIcon /></span>
+                <input
+                  type="password"
+                  id="password"
+                  name="password"
+                  value={password}
+                  onChange={handleChange}
+                  placeholder="Enter your password"
+                  style={styles.input}
+                  required
+                  disabled={isLoading}
+                />
+              </div>
+            </div>
+
+            <div style={styles.inputGroup}>
+              <label htmlFor="confirmPassword" style={styles.label}>Confirm Password</label>
+              <div style={styles.inputContainer}>
+                <span style={styles.icon}><LockIcon /></span>
+                <input
+                  type="password"
+                  id="confirmPassword"
+                  name="confirmPassword"
+                  value={confirmPassword}
+                  onChange={handleChange}
+                  placeholder="Confirm your password"
+                  style={styles.input}
+                  required
+                  disabled={isLoading}
+                />
+              </div>
+            </div>
+
+          </div>
+
+          {error && (
+            <div style={styles.errorBox}>
+              <ErrorIcon />
+              <div style={{ marginLeft: '10px' }}>
+                <p style={styles.errorTitle}>Registration Error</p>
+                <p style={styles.errorMessage}>{error}</p>
+              </div>
+            </div>
+          )}
+
+          <button
+            type="submit"
+            style={{
+              ...styles.submitButton,
+              opacity: isLoading ? 0.8 : 1,
+              cursor: isLoading ? 'not-allowed' : 'pointer',
+            }}
+            disabled={isLoading}
+          >
+            {isLoading ? 'Creating Account...' : 'Create Account'}
+          </button>
+
+          <div style={{ textAlign: 'center', marginTop: '16px' }}>
+            <p style={{ fontSize: '14px', color: '#718096' }}>
+              Already have an account?{' '}
+              <Link to="/login" style={{ color: '#9cdb5f', textDecoration: 'underline' }}>
+                Login here
+              </Link>
+            </p>
+          </div>
+
+        </form>
+      </div>
+    </div>
+  );
+};
+
+const styles: { [key: string]: React.CSSProperties } = {
+  pageContainer: {
+    background: 'linear-gradient(to bottom, #f0f9f6, #ffffff)',
+    minHeight: '100vh',
+    padding: '40px 20px',
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'flex-start',
+    fontFamily:
+      '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
+    position: 'relative',
+  },
+  backButton: {
+    position: 'fixed',
+    top: '80px',
+    left: '10px',
+    background: 'none',
+    border: 'none',
+    cursor: 'pointer',
+    color: '#4a5568',
+    fontSize: '16px',
+    display: 'flex',
+    alignItems: 'center',
+    zIndex: 1000,
+  },
+  formWrapper: {
+    width: '100%',
+    maxWidth: '500px',
+  },
+  header: {
+    fontSize: '28px',
+    fontWeight: 600,
+    color: '#2d3748',
+    marginBottom: '24px',
+  },
+  form: {
+    width: '100%',
+  },
+  card: {
+    backgroundColor: '#fff',
+    borderRadius: '12px',
+    padding: '28px',
+    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.05)',
+    border: '1px solid #e2e8f0',
+    marginBottom: '24px',
+  },
+  inputGroup: {
+    marginBottom: '20px',
+  },
+  label: {
+    display: 'block',
+    fontSize: '14px',
+    fontWeight: 500,
+    color: '#4a5568',
+    marginBottom: '8px',
+  },
+  inputContainer: {
+    position: 'relative',
+  },
+  icon: {
+    position: 'absolute',
+    left: '14px',
+    top: '50%',
+    transform: 'translateY(-50%)',
+    color: '#a0aec0',
+    display: 'flex',
+    alignItems: 'center',
+  },
+  input: {
+    width: '100%',
+    padding: '12px 12px 12px 40px',
+    fontSize: '16px',
+    border: '1px solid #cbd5e0',
+    borderRadius: '8px',
+    boxSizing: 'border-box',
+  },
+  submitButton: {
+    width: '100%',
+    padding: '14px',
+    fontSize: '16px',
+    fontWeight: 600,
+    color: '#fff',
+    backgroundColor: '#9cdb5f',
+    border: 'none',
+    borderRadius: '8px',
+    transition: 'background-color 0.2s',
+  },
+  errorBox: {
+    display: 'flex',
+    alignItems: 'center',
+    backgroundColor: '#FFF1F2',
+    color: '#E53E3E',
+    borderRadius: '8px',
+    padding: '16px',
+    marginBottom: '24px',
+    border: '1px solid #FECACA',
+  },
+  errorTitle: {
+    margin: 0,
+    fontWeight: 600,
+    fontSize: '16px',
+  },
+  errorMessage: {
+    margin: '4px 0 0',
+    fontSize: '14px',
+  },
+};
+
+export default RegisterUser;

@@ -10,7 +10,7 @@ const getAllCountryNames = async() => {
 
         return countryNames;
     } catch(e) {
-        console.log("Error al obtener todos los productos:", e);
+        console.log("Error al obtener los países:", e);
         return [];
     }
 }

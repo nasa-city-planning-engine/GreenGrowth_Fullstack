@@ -1,15 +1,7 @@
 import L from "leaflet";
 
-export type ZoneType = "verde" | "residencial" | "industrial";
+export type ZoneType = "industrial zone" | "residential zone" | "green zone";
 
-export interface Zone {
-  id: number;
-  type: ZoneType;
-  polygon: L.Polygon;
-  area: number;
-  points: L.LatLng[];
-  backendId?: string;
-}
 
 export interface LegendItem {
   color: string;
@@ -28,4 +20,10 @@ export interface PolygonDrawerProps {
   onEnvironmentUpdate?: (data: any) => void;
   buffer?: number;
   useMockData?: boolean;
+}
+
+export interface KPIData {
+  temp: number | null;
+  AQ: number | null;
+  NDVI: number | null;
 }

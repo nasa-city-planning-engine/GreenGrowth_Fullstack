@@ -1,5 +1,5 @@
-import SelectCoordinates from "../components/UbiForm";
-import BaseMap from "../components/baseMap";
+import SelectCoordinates from "../components/maps/siderbar/UbiForm";
+import BaseMap from "../components/maps/mapDisplay/baseMap";
 
 const MapPage = () => {
   return (

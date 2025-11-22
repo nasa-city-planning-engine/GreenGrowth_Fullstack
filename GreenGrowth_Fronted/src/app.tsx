@@ -1,5 +1,5 @@
 import { Outlet } from "react-router";
-import Header from "./components/header";
+import Header from "./components/pageparts/header";
 
 export default function App() {
   return (

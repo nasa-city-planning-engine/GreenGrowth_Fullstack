@@ -3,12 +3,12 @@ import App from "../app";
 import MapPage from "../pages/MapPage";
 import ErrorPage from "../pages/ErrorPage";
 import MainPage from "../pages/MainPage";
-import Denuncias from "../components/DenunciaForm";
-import ListaDenuncias from '../components/ListaDenuncias';
+import Denuncias from "../components/reports/DenunciaForm";
+import ListaDenuncias from '../components/reports/ListaDenuncias';
 import EditPage from "../pages/EditPage";
-import RegisterUser from "../components/RegisterUser";
-import LoginUser from "../components/LoginUser";
-import SimulationResults from "../components/SimulationResults";
+import RegisterUser from "../components/auth/RegisterUser";
+import LoginUser from "../components/auth/LoginUser";
+import { FormParametersProvider, PolygonsProvider, ZoneProvider } from "../others/simulationProvider";
 
 
 const router = createBrowserRouter([
@@ -28,7 +28,15 @@ const router = createBrowserRouter([
       },
       {
         path: "/edit",
-        element: <EditPage />,
+        element: (
+        <FormParametersProvider>
+          <PolygonsProvider>
+            <ZoneProvider>
+              <EditPage />
+            </ZoneProvider>
+          </PolygonsProvider>
+        </FormParametersProvider>
+      ),
         errorElement: <ErrorPage />,
       },
       {
@@ -48,13 +56,7 @@ const router = createBrowserRouter([
         path:"/login", 
         element:<LoginUser/>,
         errorElement: <ErrorPage/>
-      }, 
-      {
-        path:"/dashboard", 
-        element:<SimulationResults/>,
-        errorElement: <ErrorPage/>
       }
-        
     ],
     errorElement: <ErrorPage />,
   },

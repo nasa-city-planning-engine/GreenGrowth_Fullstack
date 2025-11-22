@@ -4,7 +4,7 @@ interface AuthProviderProps{
     children: React.ReactNode;
 }
 
-interface Coords{
+export interface Coords{
     lat: number;
     lng: number;
 }
